@@ -10,19 +10,24 @@ Get up and running with the Label Automation System in minutes!
 # 1. Clone & Install
 git clone https://github.com/merkelis-p/label-automation.git
 cd label-automation
-chmod +x setup.sh
 
-# 2. Run Setup Wizard
+# 2. Make scripts executable
+chmod +x setup.sh run.sh verify.sh
+
+# 3. Run Setup Wizard
 ./setup.sh
 
-# 3. Start Application (choose one)
+# 4. Verify Setup (optional but recommended)
+./verify.sh
+
+# 5. Start Application (choose one)
 ./run.sh dev          # Development mode with hot reload
 ./run.sh start        # Production mode in background (PM2)
 
-# 4. Open Browser
+# 6. Open Browser
 open http://localhost:3000   # Production (or http://localhost:5173 for dev)
 
-# 5. Test with Mock Data
+# 7. Test with Mock Data
 curl -X POST http://localhost:3000/api/test/seed
 ```
 
@@ -34,7 +39,10 @@ Done! 🎉
 
 Before starting, ensure you have:
 
-- ✅ Node.js 18+ ([Download](https://nodejs.org/))
+- ✅ **Node.js 17.9.1+** ([Download](https://nodejs.org/))
+  - **Node 17.9.1-17.x**: Can run app (uses pre-built files, can't build)
+  - **Node 18+**: Can run + build app (full development support)
+  - See [Node Version Guide](#node-version-compatibility) below
 - ✅ Shopify store with Admin API access
 - ✅ MakeCommerce account ([Sign up](https://maksekeskus.ee/))
 - ✅ DPD and/or OMNIVA API credentials
@@ -48,10 +56,20 @@ Before starting, ensure you have:
 ### 1. Get Your Credentials
 
 **Shopify:**
-1. Admin → Settings → Apps → "Develop apps"
-2. Create app → Configure scopes: `read_orders`, `read_fulfillments`
-3. Install app → Copy **Access Token**
-4. Note your **Shop Domain**: `yourstore.myshopify.com`
+
+**First time creating a Shopify app?** See the complete guide in [README.md - Creating a Shopify Custom App](README.md#creating-a-shopify-custom-app-first-time-setup) for detailed step-by-step instructions.
+
+**Quick summary:**
+1. Admin → Settings → Apps and sales channels → "Develop apps"
+2. Create app → Name it "Label Automation"
+3. Configure scopes: `read_orders`, `read_fulfillments`, `read_shipping`, `read_products` (optional)
+4. Install app → Copy **Access Token** (starts with `shpat_`)
+5. Note your **Shop Domain**: `yourstore.myshopify.com` (not custom domain!)
+
+**Important:**
+- Access token shown only once - save it immediately!
+- Use `.myshopify.com` domain, not your custom domain
+- For webhooks (production), copy the signing secret too
 
 **MakeCommerce:**
 1. Login to dashboard
@@ -72,8 +90,8 @@ Before starting, ensure you have:
 git clone https://github.com/merkelis-p/label-automation.git
 cd label-automation
 
-# Make setup script executable
-chmod +x setup.sh
+# Make scripts executable
+chmod +x setup.sh run.sh verify.sh
 
 # Run interactive setup
 ./setup.sh
@@ -84,6 +102,18 @@ The setup wizard will:
 - ✅ Install dependencies
 - ✅ Create `.env` file with your credentials
 - ✅ Build the project
+
+**Verify everything is ready:**
+```bash
+./verify.sh
+```
+
+This checks:
+- All required files exist
+- Dependencies installed
+- Build completed
+- Environment configured
+- Git setup correct
 
 ### 3. Manual Setup (Alternative)
 
@@ -140,7 +170,19 @@ PORT=3000
 NODE_ENV=development
 ```
 
+**Verify your setup:**
+```bash
+chmod +x verify.sh
+./verify.sh
+```
+
 ### 4. Build & Run
+
+**Verify before starting:**
+```bash
+./verify.sh
+```
+This ensures all files, dependencies, builds, and configuration are correct.
 
 **Using run.sh (Recommended):**
 
@@ -160,7 +202,15 @@ NODE_ENV=development
 ./run.sh status  # Check if running
 ./run.sh logs    # View logs
 ./run.sh stop    # Stop when done
+./run.sh restart # Restart if needed
 ```
+
+**What run.sh provides:**
+- Process management (start/stop/restart/status)
+- Development mode with auto-reload
+- Production mode (foreground or PM2 background)
+- Log viewing
+- Build management
 
 **Manual Commands:**
 ```bash
@@ -436,6 +486,47 @@ npm run build:backend
 npx tsc --noEmit
 ```
 
+## 💡 Pro Tips
+
+### Using Helper Scripts
+
+**Quick status check:**
+```bash
+./verify.sh           # Check production readiness
+./run.sh status       # Check if app is running
+./run.sh logs         # View application logs
+```
+
+**Interactive setup:**
+```bash
+./setup.sh            # Guided configuration wizard
+```
+
+**Managing the application:**
+```bash
+./run.sh restart      # Restart after config changes
+./run.sh stop         # Stop the application
+./run.sh build        # Rebuild after code changes
+```
+
+### Development
+```bash
+# Run backend only
+npm run dev:backend
+
+# Run frontend only
+npm run dev:frontend
+
+# Build only frontend
+npm run build:frontend
+
+# Build only backend
+npm run build:backend
+
+# Type check without building
+npx tsc --noEmit
+```
+
 ### Testing
 ```bash
 # Seed test data
@@ -486,20 +577,169 @@ wscat -c ws://localhost:3000/ws
 
 Before going to production:
 
+**Run verification:**
+- [ ] `./verify.sh` passes all checks
+- [ ] No errors in verification output
+
+**Configuration:**
 - [ ] All dependencies installed
 - [ ] `.env` configured with production credentials
 - [ ] Application builds without errors
 - [ ] Dashboard loads and shows "Live" status
 - [ ] Mock data displays correctly
+
+**PrintNode:**
 - [ ] PrintNode client connected
 - [ ] Test print successful
+
+**Shopify:**
 - [ ] Shopify webhooks configured with production URL
+- [ ] Webhook secret matches `.env`
+
+**Server:**
 - [ ] SSL certificate installed
 - [ ] Reverse proxy (Nginx) configured
 - [ ] PM2 process manager setup
 - [ ] Firewall configured
+- [ ] Application started with `./run.sh start` or `./run.sh prod`
+- [ ] `./run.sh status` shows application running
+
+**Monitoring:**
 - [ ] Backups scheduled
 - [ ] Monitoring enabled
+- [ ] Log rotation configured
+
+---
+
+## 🔧 Node Version Compatibility
+
+### Understanding the Two Node.js Versions
+
+This project supports both **Node 17.9.1+** and **Node 18+**, but with different capabilities:
+
+| Feature | Node 17.9.1 - 17.x | Node 18+ |
+|---------|-------------------|----------|
+| **Run Application** | ✅ Yes | ✅ Yes |
+| **Build Frontend** | ❌ No | ✅ Yes |
+| **Build Backend** | ✅ Yes | ✅ Yes |
+| **Development Mode** | ❌ No | ✅ Yes |
+| **Production Start** | ✅ Yes | ✅ Yes |
+| **run.sh start/prod** | ✅ Yes | ✅ Yes |
+| **run.sh build/dev** | ❌ No | ✅ Yes |
+| **run.sh status/logs** | ✅ Yes | ✅ Yes |
+| **setup.sh** | ❌ No | ✅ Yes |
+| **Pre-built Files** | ✅ Included | ✅ Included |
+
+### Why Two Versions?
+
+**Technical Reason:**
+- The frontend uses **Vite 7** and **React 19**, which require **Node.js 18+** to build
+- The backend uses TypeScript with ES2021 target, which can build on **Node.js 17.9.1+**
+- However, the **compiled/built application** can run on Node.js 17.9.1+
+
+**Solution:**
+- Pre-built files are committed to the repository (`frontend/dist/` and `backend/dist/`)
+- Node 17.9.1 users can **skip the build step** and use these pre-built files
+- Node 18+ users can build from source and develop normally
+
+### For Node 17.9.1 Users
+
+**What you can do:**
+```bash
+# Install dependencies
+npm install
+cd frontend && npm install && cd ..
+
+# Start the app - ALL of these work:
+npm start            # Direct start
+./run.sh start       # PM2 background mode (recommended for production)
+./run.sh prod        # Foreground mode
+
+# Management commands work too:
+./run.sh status      # Check if running
+./run.sh logs        # View logs
+./run.sh restart     # Restart app
+./run.sh stop        # Stop app
+```
+
+**What you can't do:**
+```bash
+# These commands will fail (require Node 18+):
+npm run build        # ❌ Frontend build fails (Vite 7 + React 19 need Node 18+)
+./run.sh build       # ❌ Same as above
+./run.sh dev         # ❌ Development mode (requires rebuild on changes)
+./setup.sh           # ❌ Interactive setup (includes build step)
+```
+
+**Why some commands work:**
+- ✅ `./run.sh start`, `./run.sh prod`, `npm start` - Just run existing files, no build needed
+- ✅ `./run.sh status/logs/restart/stop` - Process management, no build needed
+- ❌ `./run.sh build`, `./run.sh dev` - Require building, need Node 18+
+
+**Workaround:**
+- Use the pre-built files included in the repository
+- For production: `./run.sh start` works perfectly on Node 17.9.1
+- If you need to modify frontend code, do it on a machine with Node 18+
+- Or upgrade to Node 18+ for full development capabilities
+
+### For Node 18+ Users
+
+**What you can do:**
+```bash
+# Everything works normally
+./setup.sh              # Full setup with build
+./run.sh dev            # Development with hot reload
+./run.sh build          # Build from source
+./run.sh start          # Production mode
+```
+
+**Full development support:**
+- ✅ Build frontend and backend
+- ✅ Development mode with hot reload
+- ✅ Modify any code and rebuild
+- ✅ All npm scripts work
+
+### Checking Your Node Version
+
+```bash
+node --version
+```
+
+**Output examples:**
+- `v17.9.1` → Node 17.9.1 (can run, can't build frontend)
+- `v18.20.0` → Node 18 (full support)
+- `v20.11.0` → Node 20 (full support)
+- `v16.20.0` → Node 16 ❌ (not supported)
+
+### Upgrading Node.js
+
+**macOS (using Homebrew):**
+```bash
+brew install node@18
+```
+
+**macOS (using nvm):**
+```bash
+nvm install 18
+nvm use 18
+```
+
+**Ubuntu/Debian:**
+```bash
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+**Windows:**
+- Download from: https://nodejs.org/
+- Install Node 18 LTS or Node 20 LTS
+
+### Summary
+
+- **Need to run the app?** → Node 17.9.1+ is fine (use pre-built files)
+- **Need to develop/modify code?** → Upgrade to Node 18+
+- **Pre-built files included?** → Yes, in `frontend/dist/` and `backend/dist/`
+- **Should I upgrade?** → Yes, for full development capabilities
 
 ---
 

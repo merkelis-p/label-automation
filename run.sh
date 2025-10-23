@@ -1,5 +1,92 @@
 #!/bin/bash
 
+# =============================================================================
+# Label Automation System - Application Manager
+# =============================================================================
+#
+# DESCRIPTION:
+#   This script manages the Label Automation application lifecycle. It provides
+#   convenient commands for development, production deployment, and process
+#   management using PM2.
+#
+# USAGE:
+#   chmod +x run.sh
+#   ./run.sh <command>
+#
+# COMMANDS:
+#
+#   Development:
+#     ./run.sh dev          Run in development mode with hot reload
+#                          - Backend: http://localhost:3000
+#                          - Frontend: http://localhost:5173 (auto-proxied)
+#                          - Auto-restarts on code changes
+#                          - Runs in foreground (Ctrl+C to stop)
+#
+#   Production (Foreground):
+#     ./run.sh prod         Run in production mode (keeps terminal open)
+#                          - Uses built files from dist directories
+#                          - Backend: http://localhost:3000
+#                          - Requires ./run.sh build first
+#                          - Press Ctrl+C to stop
+#
+#   Production (Background with PM2):
+#     ./run.sh build        Build frontend and backend for production
+#                          - Creates optimized production builds
+#                          - Required before starting with PM2
+#
+#     ./run.sh start        Start application in background using PM2
+#                          - Runs as daemon process
+#                          - Auto-restarts on crashes
+#                          - Survives terminal close
+#
+#     ./run.sh stop         Stop PM2 managed process
+#                          - Gracefully shuts down application
+#
+#     ./run.sh restart      Restart PM2 managed process
+#                          - Useful after config changes or code updates
+#                          - Zero-downtime restart
+#
+#     ./run.sh status       Show PM2 process status
+#                          - Lists running processes
+#                          - Shows uptime, memory, CPU usage
+#
+#     ./run.sh logs         View PM2 logs in real-time
+#                          - Shows combined stdout/stderr
+#                          - Press Ctrl+C to exit log view
+#
+# PREREQUISITES:
+#   - Node.js >= 17.9.1
+#   - npm packages installed (run ./setup.sh)
+#   - .env file configured (run ./setup.sh)
+#   - PM2 installed globally for background mode (npm install -g pm2)
+#
+# EXAMPLES:
+#   # Quick development start
+#   ./run.sh dev
+#
+#   # Production deployment
+#   ./run.sh build
+#   ./run.sh start
+#   ./run.sh status
+#
+#   # Update and restart
+#   git pull
+#   ./run.sh build
+#   ./run.sh restart
+#
+#   # Check logs
+#   ./run.sh logs
+#
+# NOTES:
+#   - Use ./verify.sh to check if everything is configured correctly
+#   - Run ./setup.sh first if you haven't configured the application
+#   - For production, PM2 provides better process management than foreground mode
+#
+# SUPPORT:
+#   See README.md and QUICKSTART.md for detailed documentation
+#
+# =============================================================================
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'

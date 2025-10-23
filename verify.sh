@@ -1,7 +1,90 @@
 #!/bin/bash
 
-# Project Verification Script
-# Checks if all production-ready components are in place
+# =============================================================================
+# Label Automation System - Production Readiness Verification
+# =============================================================================
+#
+# DESCRIPTION:
+#   This script verifies that the Label Automation System is correctly set up
+#   and ready for production deployment. It performs comprehensive checks on:
+#
+#   1. File Structure - Ensures all required files exist
+#   2. Dependencies - Verifies npm packages are installed
+#   3. Build Artifacts - Checks that frontend/backend are built
+#   4. Configuration - Validates .env file and credentials
+#   5. Git Repository - Confirms proper version control setup
+#   6. Node.js Version - Checks compatibility (>= 17.9.1)
+#
+# USAGE:
+#   chmod +x verify.sh
+#   ./verify.sh
+#
+# WHAT IT CHECKS:
+#
+#   File Structure:
+#     - ✅ Core files (package.json, tsconfig.json, etc.)
+#     - ✅ Backend structure (src/, dist/, tsconfig.json)
+#     - ✅ Frontend structure (src/, dist/, index.html)
+#     - ✅ Helper scripts (setup.sh, run.sh, verify.sh)
+#     - ✅ Documentation (README.md, QUICKSTART.md, etc.)
+#
+#   Dependencies:
+#     - ✅ Root node_modules
+#     - ✅ Frontend node_modules
+#     - ✅ Backend node_modules (if applicable)
+#
+#   Build Artifacts:
+#     - ✅ frontend/dist/ exists and contains files
+#     - ✅ backend/dist/ exists and contains files
+#     - ⚠️  Warns if builds are missing (required for production)
+#
+#   Configuration:
+#     - ✅ .env file exists
+#     - ✅ Critical environment variables are set
+#     - ✅ Shopify credentials configured
+#     - ✅ MakeCommerce credentials configured
+#     - ✅ PrintNode credentials configured
+#
+#   Git Repository:
+#     - ✅ .git directory exists
+#     - ✅ .gitignore present
+#     - ⚠️  Warns about uncommitted changes
+#
+#   Node.js Version:
+#     - ✅ Node.js >= 17.9.1 detected
+#     - ❌ Fails if version too old
+#
+# EXIT CODES:
+#   0 - All checks passed (production ready)
+#   1 - Critical errors found (not ready)
+#
+# OUTPUT:
+#   - ✅ Green check - Passed
+#   - ❌ Red cross - Failed (critical)
+#   - ⚠️  Yellow warning - Warning (non-critical)
+#
+# WHEN TO USE:
+#   - After running ./setup.sh
+#   - Before deploying to production
+#   - After making configuration changes
+#   - When troubleshooting issues
+#   - As part of CI/CD pipeline
+#
+# RECOMMENDATIONS:
+#   If errors found:
+#     1. Run ./setup.sh to reconfigure
+#     2. Run npm install to install dependencies
+#     3. Run ./run.sh build to create production builds
+#     4. Check .env file for missing variables
+#
+#   If warnings found:
+#     - Commit your changes to git
+#     - Build production artifacts before deployment
+#
+# SUPPORT:
+#   See README.md and QUICKSTART.md for detailed documentation
+#
+# =============================================================================
 
 set -e
 

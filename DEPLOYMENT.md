@@ -54,7 +54,10 @@ Before deploying to production:
 - **OS**: Ubuntu 22.04 LTS
 
 ### Software Requirements
-- Node.js 18+ (LTS recommended)
+- **Node.js 17.9.1+** (Node 18+ LTS recommended for full build support)
+  - Node 17.9.1-17.x: Can run using pre-built files
+  - Node 18+: Can build and run (recommended)
+  - See [Node Version Compatibility](#node-version-compatibility) below
 - npm 9+
 - Git
 - Nginx or Apache (for reverse proxy)
@@ -79,8 +82,9 @@ Quick steps:
 1. Setup server (Ubuntu 20.04+)
 2. Clone repository
 3. Run `./setup.sh` (guided setup)
-4. Run `./run.sh build` (build application)
-5. Run `./run.sh start` (start with PM2)
+4. Run `./verify.sh` (verify everything)
+5. Run `./run.sh build` (build application)
+6. Run `./run.sh start` (start with PM2)
 
 Full instructions below ↓
 
@@ -94,13 +98,20 @@ Full instructions below ↓
 # Update system
 sudo apt update && sudo apt upgrade -y
 
-# Install Node.js 20 LTS
+# Install Node.js 20 LTS (recommended for production)
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt install -y nodejs
 
+# OR install Node.js 18 LTS (minimum recommended)
+# curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+# sudo apt install -y nodejs
+
 # Verify installation
-node -v  # Should show v20.x.x
-npm -v   # Should show 10.x.x
+node -v  # Should show v18.x.x or v20.x.x
+npm -v   # Should show 9.x.x or 10.x.x
+
+# Note: Node 17.9.1+ can run the app, but Node 18+ is recommended for full build support
+# See Node Version Compatibility section below for details
 
 # Install Git
 sudo apt install -y git
@@ -108,6 +119,32 @@ sudo apt install -y git
 # Install build tools
 sudo apt install -y build-essential
 ```
+
+### Node Version Compatibility
+
+**Important: Choose the right Node.js version for your needs**
+
+| Node Version | Can Run App | Can Build | Recommended For |
+|--------------|-------------|-----------|-----------------|
+| 17.9.1 - 17.x | ✅ Yes (pre-built) | ❌ No | Running only (not recommended for production) |
+| 18.x LTS | ✅ Yes | ✅ Yes | ✅ **Production (Recommended)** |
+| 20.x LTS | ✅ Yes | ✅ Yes | ✅ **Production (Latest)** |
+
+**Why Node 18+ is recommended for production:**
+- Full build support for updates and customizations
+- Can rebuild from source if needed
+- Better security and performance
+- LTS (Long Term Support) version
+
+**Can I use Node 17.9.1?**
+- Yes, the app will run using pre-built files from the repository
+- However, you won't be able to build the frontend if you need to update code
+- Not recommended for production deployments
+
+**Pre-built files included:**
+- `frontend/dist/` - Pre-built React frontend
+- `backend/dist/` - Pre-built TypeScript backend
+- These allow Node 17.9.1 users to run the app without building
 
 ### Step 2: Create Application User
 
@@ -135,7 +172,7 @@ cd /opt/label-automation
 
 ```bash
 # Run the setup wizard
-chmod +x setup.sh
+chmod +x setup.sh run.sh verify.sh
 ./setup.sh
 ```
 
@@ -145,6 +182,13 @@ The setup script will:
 - Create `.env` file with your credentials
 - Build the project
 - Verify everything is ready
+
+**Verify the setup:**
+```bash
+./verify.sh
+```
+
+This checks all files, dependencies, builds, and configuration are correct.
 
 **Option B: Manual Setup**
 
@@ -158,6 +202,10 @@ cp .env.example .env
 
 # Edit with your credentials
 nano .env
+
+# Verify everything is ready
+chmod +x verify.sh
+./verify.sh
 ```
 
 See the [Environment Variables](#environment-variables) section below for the correct variable names.
@@ -1057,7 +1105,8 @@ pm2 start ecosystem.config.cjs --max-memory-restart 500M
 ## 📞 Support
 
 For production issues:
-- Check logs first: `pm2 logs`
+- **First step**: Run `./verify.sh` to check configuration
+- Check logs: `./run.sh logs` or `pm2 logs`
 - Review Nginx errors: `sudo tail -f /var/log/nginx/error.log`
 - Monitor resources: `pm2 monit`, `htop`
 - GitHub Issues: https://github.com/merkelis-p/label-automation/issues
@@ -1069,6 +1118,7 @@ For production issues:
 - [ ] Server provisioned
 - [ ] DNS configured
 - [ ] SSL certificate installed
+- [ ] Run `./verify.sh` - all checks pass
 - [ ] Application built and deployed
 - [ ] PM2 configured and running
 - [ ] Nginx reverse proxy configured

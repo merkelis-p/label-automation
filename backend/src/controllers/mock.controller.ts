@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { store } from '../store.js';
 import { broadcastUpdate } from '../websocket.js';
+import { listRecentOrders } from '../services/shopify.service.js';
 import type { FulfilledOrder, PrintJob } from '../types/index.js';
 
 // Mock Shopify webhook payload
@@ -72,7 +73,9 @@ export async function mockFulfillment(req: Request, res: Response) {
 
     // Simulate label creation (after 2 seconds)
     setTimeout(() => {
-      const labelUrl = `https://static.maksekeskus.ee/lbl/mock-${Date.now()}.pdf`;
+      // Use a local placeholder label so the UI can always open a valid PDF during tests
+      const base = process.env.APP_BASE_URL || 'http://localhost:3000';
+      const labelUrl = `${base}/labels/placeholder.pdf`;
       const updatedOrder = {
         ...order,
         labelUrl,
@@ -86,7 +89,7 @@ export async function mockFulfillment(req: Request, res: Response) {
         status: 'label_created' 
       });
       broadcastUpdate('order_update', updatedOrder);
-      console.log('🏷️  Label created for order:', order.id);
+      console.log('🏷️  Label created for order (placeholder):', order.id);
 
       // Simulate print job (after another 2 seconds)
       setTimeout(() => {
@@ -155,63 +158,64 @@ export async function seedTestData(req: Request, res: Response) {
     // Clear existing data
     store.clear();
     console.log('🗑️  Store cleared');
+    
+    // Notify all clients to refresh their data
+    broadcastUpdate('data_cleared', { message: 'Test data cleared, reloading...' });
 
-    // Create sample fulfilled orders
-    const testOrders = [
-      {
-        id: uuidv4(),
-        shopifyOrderId: 'gid://shopify/Order/5847839899966',
-        carrier: 'DPD_LT' as const,
-        trackingNumber: '05808011288369',
-        lockerId: 'DPD_PICKUP_123',
-        labelUrl: 'https://static.maksekeskus.ee/lbl/mock-dpd-1.pdf',
-        labelPath: '/labels/dpd-1.pdf',
-        status: 'printed' as const,
-        createdAt: new Date(Date.now() - 3600000).toISOString(),
-      },
-      {
-        id: uuidv4(),
-        shopifyOrderId: 'gid://shopify/Order/5847839912345',
-        carrier: 'OMNIVA' as const,
-        trackingNumber: 'CC868835393EE',
-        lockerId: '94401',
-        labelUrl: 'https://static.maksekeskus.ee/lbl/20251020d4el0Z0KpvuiI30BouELhLy4741armPk.pdf',
-        labelPath: '/labels/omniva-1.pdf',
-        status: 'label_created' as const,
-        createdAt: new Date(Date.now() - 1800000).toISOString(),
-      },
-      {
-        id: uuidv4(),
-        shopifyOrderId: 'gid://shopify/Order/5847839967890',
-        carrier: 'DPD_LT' as const,
-        trackingNumber: '05808011299999',
-        lockerId: 'DPD_PICKUP_456',
-        status: 'pending' as const,
-        createdAt: new Date(Date.now() - 600000).toISOString(),
-      },
-    ];
+    // Fetch recent orders from the connected Shopify store
+    console.log('🔄 Fetching recent orders from Shopify for test data...');
+    const recentOrders = await listRecentOrders(3);
+    
+    if (recentOrders.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No orders found in your Shopify store',
+        message: 'Cannot seed test data without existing orders. Please create at least one order in your Shopify store first.',
+      });
+    }
 
-    // Create sample print jobs
-    const testPrintJobs = [
-      {
+    console.log(`✅ Found ${recentOrders.length} recent orders from Shopify`);
+
+    // Create sample fulfilled orders using REAL order IDs from the connected Shopify store
+    const testOrders = recentOrders.map((shopifyOrder, index) => {
+      const carriers = ['OMNIVA', 'DPD_LT'] as const;
+      const statuses = ['label_created', 'printed', 'pending'] as const;
+      const carrier = carriers[index % carriers.length];
+      const status = statuses[index % statuses.length];
+      
+      return {
         id: uuidv4(),
-        orderId: testOrders[0].id,
+        shopifyOrderId: `gid://shopify/Order/${shopifyOrder.id}`,
+        carrier,
+        trackingNumber: carrier === 'OMNIVA' 
+          ? `CC86883${5390 + index}EE` 
+          : `0580801129${9990 + index}`,
+        lockerId: carrier === 'OMNIVA' 
+          ? `${88860 + index}` 
+          : `DPD_PICKUP_${450 + index}`,
+        labelUrl: status !== 'pending'
+          ? `${process.env.APP_BASE_URL || 'http://localhost:3000'}/labels/placeholder.pdf`
+          : undefined,
+        labelPath: status !== 'pending'
+          ? `/labels/${carrier.toLowerCase()}-${index}.pdf`
+          : undefined,
+        status,
+        createdAt: new Date(Date.now() - (3600000 - index * 1800000)).toISOString(),
+      };
+    });
+
+    // Create sample print jobs - ALL COMPLETED to avoid infinite "printing" toast
+    const testPrintJobs = testOrders
+      .filter(order => order.status !== 'pending')
+      .map((order, index) => ({
+        id: uuidv4(),
+        orderId: order.id,
         printerId: 'zebra-zd421',
         status: 'completed' as const,
-        labelPath: testOrders[0].labelPath,
-        createdAt: new Date(Date.now() - 3500000).toISOString(),
-        completedAt: new Date(Date.now() - 3400000).toISOString(),
-      },
-      {
-        id: uuidv4(),
-        orderId: testOrders[1].id,
-        printerId: 'zebra-zd421',
-        status: 'completed' as const,
-        labelPath: testOrders[1].labelPath,
-        createdAt: new Date(Date.now() - 1700000).toISOString(),
-        completedAt: new Date(Date.now() - 1650000).toISOString(),
-      },
-    ];
+        labelPath: order.labelPath,
+        createdAt: new Date(Date.now() - (3500000 - index * 1800000)).toISOString(),
+        completedAt: new Date(Date.now() - (3400000 - index * 1800000)).toISOString(),
+      }));
 
     // Add test orders
     testOrders.forEach((order) => {
@@ -246,10 +250,14 @@ export async function seedTestData(req: Request, res: Response) {
 
     res.json({
       success: true,
-      message: 'Test data seeded successfully',
+      message: 'Test data seeded successfully with orders from your Shopify store',
       data: {
         orders: testOrders.length,
         printJobs: testPrintJobs.length,
+        shopifyOrders: recentOrders.map(o => ({
+          id: o.id,
+          name: o.name,
+        })),
       },
     });
   } catch (error: any) {

@@ -40,13 +40,39 @@ export interface ShopifyFulfillment {
   tracking_numbers?: string[];
 }
 
+export interface ShopifyLineItem {
+  id: number;
+  title: string;
+  quantity: number;
+  price: string;
+  sku?: string;
+  variant_title?: string;
+  product_id: number;
+  variant_id: number;
+  name: string;
+  fulfillment_status?: string | null;
+  image?: {
+    src: string;
+    alt?: string;
+  };
+}
+
 export interface ShopifyOrder {
   id: number;
   name: string;
   order_number: number;
   email?: string;
   phone?: string;
+  total_price?: string;
+  subtotal_price?: string;
+  total_tax?: string;
+  currency?: string;
+  financial_status?: string;
+  fulfillment_status?: string | null;
+  created_at?: string;
+  note?: string;
   note_attributes?: Array<{ name: string; value: string }>;
+  line_items?: ShopifyLineItem[];
   customer?: {
     first_name?: string;
     last_name?: string;
@@ -68,6 +94,7 @@ export interface ShopifyOrder {
   };
   shipping_lines?: Array<{
     title?: string;
+    price?: string;
   }>;
 }
 

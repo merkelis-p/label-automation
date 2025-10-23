@@ -57,6 +57,13 @@ class Store {
   clear(): void {
     this.orders.clear();
     this.printJobs = [];
+    // Reset printer status to offline when clearing test data
+    this.printerStatus = {
+      printerId: '',
+      name: '',
+      status: 'offline',
+      lastCheck: new Date().toISOString(),
+    };
   }
 }
 

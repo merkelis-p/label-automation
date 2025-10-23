@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import type { FulfilledOrder, PrintJob, PrinterStatus, WebSocketMessage } from '../types';
 
@@ -8,6 +8,16 @@ export function useWebSocket() {
   const [printerStatus, setPrinterStatus] = useState<PrinterStatus | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const hasConnectedOnce = useRef(false);
+
+  // Detect if we have test/mock data (orders with placeholder labels or no Shopify order details available)
+  const hasTestData = useMemo(() => {
+    return orders.some(order => 
+      order.labelUrl?.includes('placeholder.pdf') || 
+      order.labelUrl?.includes('localhost') ||
+      order.id.startsWith('test-') ||
+      order.id.startsWith('order ')
+    );
+  }, [orders]);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -123,6 +133,14 @@ export function useWebSocket() {
               toast.error(`Printer ${printerData.name} has an error`);
             }
             break;
+
+          case 'data_cleared':
+            // Clear all local data and refetch
+            setOrders([]);
+            setPrintJobs([]);
+            toast.info('Data cleared, refreshing...');
+            // Refetch will happen as new data comes through WebSocket
+            break;
         }
       } catch (error) {
         console.error('Failed to parse WebSocket message:', error);
@@ -153,5 +171,5 @@ export function useWebSocket() {
     };
   }, [fetchInitialData]);
 
-  return { orders, printJobs, printerStatus, isConnected };
+  return { orders, printJobs, printerStatus, isConnected, hasTestData };
 }

@@ -1,7 +1,46 @@
 #!/bin/bash
 
-# Label Automation System - Setup Script
-# This script will guide you through the initial setup process
+# =============================================================================
+# Label Automation System - Interactive Setup Wizard
+# =============================================================================
+#
+# DESCRIPTION:
+#   This script provides an interactive wizard to help you set up the Label
+#   Automation System from scratch. It will guide you through:
+#
+#   1. Dependencies Installation (Node.js, npm packages)
+#   2. Environment Configuration (.env file creation)
+#   3. Build Process (frontend and backend)
+#   4. Verification (checks if everything is ready)
+#
+# USAGE:
+#   chmod +x setup.sh
+#   ./setup.sh
+#
+# FEATURES:
+#   - ✅ Checks Node.js version compatibility (requires >= 17.9.1)
+#   - ✅ Installs all npm dependencies
+#   - ✅ Creates .env file from template
+#   - ✅ Guides you through credential entry (Shopify, MakeCommerce, etc.)
+#   - ✅ Validates configuration inputs
+#   - ✅ Builds frontend and backend
+#   - ✅ Runs final verification check
+#   - ✅ Provides next steps instructions
+#
+# WHAT YOU'LL NEED:
+#   - Shopify store URL and access token
+#   - MakeCommerce credentials (shop ID, DPD/OMNIVA credentials)
+#   - Sender information (name, address, contact)
+#   - PrintNode API key and printer ID
+#
+# AFTER SETUP:
+#   - Use ./verify.sh to check production readiness
+#   - Use ./run.sh dev|prod|start to run the application
+#
+# SUPPORT:
+#   See README.md and QUICKSTART.md for detailed documentation
+#
+# =============================================================================
 
 set -e  # Exit on error
 

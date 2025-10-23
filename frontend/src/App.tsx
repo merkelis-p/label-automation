@@ -5,9 +5,10 @@ import { OrdersTable } from './components/OrdersTable';
 import { PrintJobsTable } from './components/PrintJobsTable';
 import { PrinterStatus } from './components/PrinterStatus';
 import { ConnectionStatus } from './components/ConnectionStatus';
+import { TestDataBanner } from './components/TestDataBanner';
 
 function App() {
-  const { orders, printJobs, printerStatus, isConnected } = useWebSocket();
+  const { orders, printJobs, printerStatus, isConnected, hasTestData } = useWebSocket();
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,6 +34,7 @@ function App() {
 
       <main className="container mx-auto px-4 py-4 md:py-8">
         <div className="grid gap-4 md:gap-6">
+          <TestDataBanner hasTestData={hasTestData} />
           <PrinterStatus status={printerStatus} />
           <OrdersTable orders={orders} printJobs={printJobs} />
           <PrintJobsTable printJobs={printJobs} />
