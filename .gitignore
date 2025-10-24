@@ -10,9 +10,6 @@ node_modules/
 build/
 *.tsbuildinfo
 
-# IMPORTANT: Keep built files for Node 17.x users
-!frontend/dist/
-!backend/dist/
 
 # Environment files
 .env
