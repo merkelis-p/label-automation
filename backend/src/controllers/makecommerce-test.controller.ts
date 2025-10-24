@@ -3,6 +3,8 @@ import axios from 'axios';
 import { store } from '../store.js';
 import { broadcastUpdate } from '../websocket.js';
 import { FulfilledOrder, PrintJob } from '../types/index.js';
+import { printLabel } from '../services/printnode.service.js';
+import { config } from '../config/index.js';
 
 /**
  * MakeCommerce Test Controller
@@ -35,15 +37,16 @@ const MAKECOMMERCE_TEST_CONFIG = {
 };
 
 /**
- * Helper function to create a test order in the store
+ * Helper function to create a test order in the store and optionally print it
  */
-function createTestOrder(
+async function createTestOrder(
   orderId: string,
   carrier: 'DPD_LT' | 'OMNIVA',
   shipmentId: string,
   destinationId: string,
-  labelUrl: string
-): void {
+  labelUrl: string,
+  autoPrint: boolean = false
+): Promise<void> {
   // Generate a fake Shopify GID using timestamp as order ID
   const fakeShopifyOrderId = Date.now();
   const shopifyGid = `gid://shopify/Order/${fakeShopifyOrderId}`;
@@ -62,6 +65,57 @@ function createTestOrder(
   store.addOrder(order);
   broadcastUpdate('order_update', order);
   console.log(`📦 Test order created in store: ${orderId} (Shopify GID: ${shopifyGid})`);
+
+  // Auto-print if requested and PrintNode is configured
+  if (autoPrint && config.printnode.apiKey && config.printnode.printerId) {
+    try {
+      console.log(`🖨️  Auto-printing label for ${orderId}...`);
+      
+      // Download the PDF
+      const pdfResponse = await axios.get(labelUrl, {
+        responseType: 'arraybuffer',
+        timeout: 10000,
+      });
+      const pdfBuffer = Buffer.from(pdfResponse.data);
+
+      // Send to PrintNode
+      const printResult = await printLabel(pdfBuffer, `Label ${shipmentId}`);
+      
+      // Create print job record
+      const printJob: PrintJob = {
+        id: `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        orderId: order.id,
+        printerId: config.printnode.printerId,
+        status: 'printing',
+        createdAt: new Date().toISOString(),
+        completedAt: undefined,
+      };
+
+      store.addPrintJob(printJob);
+      broadcastUpdate('print_update', printJob);
+
+      // Update to completed after a delay
+      setTimeout(() => {
+        const completedJob = {
+          ...printJob,
+          status: 'completed' as const,
+          completedAt: new Date().toISOString(),
+        };
+        broadcastUpdate('print_update', completedJob);
+        
+        // Update order status to printed
+        store.updateOrder(order.id, { status: 'printed' });
+        const updatedOrder = store.getOrder(order.id);
+        if (updatedOrder) {
+          broadcastUpdate('order_update', updatedOrder);
+        }
+      }, 3000);
+
+      console.log(`✅ Print job sent to PrintNode: ${printResult.jobId}`);
+    } catch (error: any) {
+      console.error(`❌ Failed to auto-print label:`, error.message);
+    }
+  }
 }
 
 /**
@@ -92,7 +146,7 @@ async function verifyLabelUrl(url?: string): Promise<string> {
 
 /**
  * Test DPD Lithuania label generation
- * POST /api/test/makecommerce/dpd
+ * POST /api/test/makecommerce/dpd?print=true
  */
 export const testDPDLabel = async (req: Request, res: Response) => {
   try {
@@ -102,6 +156,9 @@ export const testDPDLabel = async (req: Request, res: Response) => {
       recipientPhone = '37258875115',
       recipientEmail = 'mk.test@maksekeskus.ee',
     } = req.body;
+
+    // Check if auto-print is requested via query parameter
+    const autoPrint = req.query.print === 'true';
 
     const orderId = `order ${Date.now()}`; // Use "order" prefix like in working example
     const shipmentId = generateShipmentId();
@@ -169,8 +226,8 @@ export const testDPDLabel = async (req: Request, res: Response) => {
     // Verify label URL or use placeholder
     const labelUrl = await verifyLabelUrl(response.data?.labelUrl);
 
-    // Create order in store so it appears in the UI
-    createTestOrder(orderId, 'DPD_LT', shipmentId, destinationId, labelUrl);
+    // Create order in store so it appears in the UI (with auto-print if requested)
+    await createTestOrder(orderId, 'DPD_LT', shipmentId, destinationId, labelUrl, autoPrint);
 
     res.json({
       success: true,
@@ -179,6 +236,7 @@ export const testDPDLabel = async (req: Request, res: Response) => {
       shipmentId,
       destinationId,
       labelUrl,
+      autoPrint,
       response: response.data,
     });
   } catch (error: any) {
@@ -202,6 +260,9 @@ export const testOMNIVALabel = async (req: Request, res: Response) => {
       recipientPhone = '37258875115',
       recipientEmail = 'mk.test@maksekeskus.ee',
     } = req.body;
+
+    // Check if auto-print is requested via query parameter
+    const autoPrint = req.query.print === 'true';
 
     const orderId = `order ${Date.now()}`; // Use "order" prefix like in working example
     const shipmentId = generateOMNIVAShipmentId();
@@ -266,8 +327,8 @@ export const testOMNIVALabel = async (req: Request, res: Response) => {
     // Verify label URL or use placeholder
     const labelUrl = await verifyLabelUrl(response.data?.labelUrl);
 
-    // Create order in store so it appears in the UI
-    createTestOrder(orderId, 'OMNIVA', shipmentId, destinationId, labelUrl);
+    // Create order in store so it appears in the UI (with auto-print if requested)
+    await createTestOrder(orderId, 'OMNIVA', shipmentId, destinationId, labelUrl, autoPrint);
 
     res.json({
       success: true,
@@ -276,6 +337,7 @@ export const testOMNIVALabel = async (req: Request, res: Response) => {
       shipmentId,
       destinationId,
       labelUrl,
+      autoPrint,
       response: response.data,
     });
   } catch (error: any) {
@@ -293,6 +355,9 @@ export const testOMNIVALabel = async (req: Request, res: Response) => {
  */
 export const testBothCarriers = async (req: Request, res: Response) => {
   try {
+    // Check if auto-print is requested via query parameter
+    const autoPrint = req.query.print === 'true';
+    
     const results: any = {
       dpd: null,
       omniva: null,
@@ -360,8 +425,8 @@ export const testBothCarriers = async (req: Request, res: Response) => {
 
       const dpdLabelUrl = await verifyLabelUrl(dpdResponse.data?.labelUrl);
 
-      // Create order in store
-      createTestOrder(dpdOrderId, 'DPD_LT', dpdShipmentId, 'LT90008', dpdLabelUrl);
+      // Create order in store (with auto-print if requested)
+      await createTestOrder(dpdOrderId, 'DPD_LT', dpdShipmentId, 'LT90008', dpdLabelUrl, autoPrint);
 
       results.dpd = {
         success: true,
@@ -438,8 +503,8 @@ export const testBothCarriers = async (req: Request, res: Response) => {
 
       const omnivaLabelUrl = await verifyLabelUrl(omnivaResponse.data?.labelUrl);
 
-      // Create order in store
-      createTestOrder(omnivaOrderId, 'OMNIVA', omnivaShipmentId, '96077', omnivaLabelUrl);
+      // Create order in store (with auto-print if requested)
+      await createTestOrder(omnivaOrderId, 'OMNIVA', omnivaShipmentId, '96077', omnivaLabelUrl, autoPrint);
 
       results.omniva = {
         success: true,

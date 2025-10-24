@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 /**
  * Test DPD Lithuania label generation
- * POST /api/test/makecommerce/dpd
+ * POST /api/test/makecommerce/dpd?print=true
  */
 export declare const testDPDLabel: (req: Request, res: Response) => Promise<void>;
 /**
