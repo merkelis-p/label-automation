@@ -59,11 +59,23 @@ export async function getPrinterStatus(): Promise<{
       }
     );
 
+    // PrintNode API returns an array, even for a single printer
+    const printers = Array.isArray(response.data) ? response.data : [response.data];
+    const printer = printers[0];
+
+    if (!printer) {
+      return {
+        online: false,
+        queueLength: 0,
+      };
+    }
+
     return {
-      online: response.data.state === 'online',
-      queueLength: response.data.job?.length || 0,
+      online: printer.state === 'online',
+      queueLength: printer.job?.length || 0,
     };
-  } catch {
+  } catch (error) {
+    console.error('PrintNode API error:', error);
     return {
       online: false,
       queueLength: 0,
