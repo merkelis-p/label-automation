@@ -18,4 +18,10 @@ export declare function clearAllData(req: Request, res: Response): Promise<void>
  * GET /api/fetch-real-orders?limit=10
  */
 export declare function fetchRealOrders(req: Request, res: Response): Promise<void>;
+/**
+ * Print label from URL - downloads PDF and sends to PrintNode
+ * POST /api/print-label
+ * Body: { labelUrl: string, orderId: string, trackingNumber: string }
+ */
+export declare function printLabelFromUrl(req: Request, res: Response): Promise<void>;
 //# sourceMappingURL=api.controller.d.ts.map

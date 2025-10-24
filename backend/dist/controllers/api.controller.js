@@ -1,6 +1,9 @@
 import { store } from '../store.js';
 import { getOrder, listRecentOrders } from '../services/shopify.service.js';
+import { printLabel } from '../services/printnode.service.js';
 import { broadcastUpdate } from '../websocket.js';
+import { config } from '../config/index.js';
+import axios from 'axios';
 export async function getOrders(_req, res) {
     const orders = store.getAllOrders();
     res.json(orders);
@@ -154,6 +157,57 @@ export async function fetchRealOrders(req, res) {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch real orders',
+            message: error.message
+        });
+    }
+}
+/**
+ * Print label from URL - downloads PDF and sends to PrintNode
+ * POST /api/print-label
+ * Body: { labelUrl: string, orderId: string, trackingNumber: string }
+ */
+export async function printLabelFromUrl(req, res) {
+    try {
+        const { labelUrl, orderId, trackingNumber } = req.body;
+        if (!labelUrl || !orderId) {
+            res.status(400).json({
+                error: 'Missing required fields: labelUrl and orderId are required'
+            });
+            return;
+        }
+        console.log(`🖨️  Printing label for order ${orderId} from ${labelUrl}`);
+        // Download the PDF
+        const pdfResponse = await axios.get(labelUrl, {
+            responseType: 'arraybuffer',
+            timeout: 10000,
+        });
+        const pdfBuffer = Buffer.from(pdfResponse.data);
+        // Send to PrintNode
+        const printNodeJobId = await printLabel(pdfBuffer, `Label_${orderId}.pdf`);
+        // Create print job record
+        const printJob = {
+            id: Date.now().toString(),
+            printerId: config.printnode.printerId,
+            orderId,
+            status: 'queued',
+            createdAt: new Date().toISOString(),
+        };
+        store.addPrintJob(printJob);
+        // Broadcast update to all clients
+        broadcastUpdate('print_job_created', printJob);
+        console.log(`✅ Print job created: ${printNodeJobId} for order ${orderId}`);
+        res.json({
+            success: true,
+            printJob,
+            printNodeJobId,
+            message: 'Label sent to printer successfully'
+        });
+    }
+    catch (error) {
+        console.error('Failed to print label:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to print label',
             message: error.message
         });
     }

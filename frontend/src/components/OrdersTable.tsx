@@ -87,18 +87,18 @@ export function OrdersTable({ orders, printJobs }: OrdersTableProps) {
     if (!order.labelPath && !order.labelUrl) return;
 
     try {
-      const printPromise = fetch('/mock/printnode/jobs', {
+      // Use real PrintNode API instead of mock
+      const labelUrl = order.labelUrl || order.labelPath;
+      
+      const printPromise = fetch('/api/print-label', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          printerId: order.id, // Use order ID as printer ID for mock
-          title: `Label ${order.trackingNumber}`,
-          contentType: 'pdf_uri',
-          content: order.labelUrl || order.labelPath,
-          source: 'manual',
-          qty: 1,
+          labelUrl,
+          orderId: order.id,
+          trackingNumber: order.trackingNumber,
         }),
       });
 

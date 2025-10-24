@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getOrders, getOrderDetails, getPrintJobs, getPrinterStatus, proxyPdf, clearAllData, fetchRealOrders } from '../controllers/api.controller.js';
+import { getOrders, getOrderDetails, getPrintJobs, getPrinterStatus, proxyPdf, clearAllData, fetchRealOrders, printLabelFromUrl } from '../controllers/api.controller.js';
 import { retryPrintJob } from '../controllers/mock.controller.js';
 
 const router = Router();
@@ -12,5 +12,6 @@ router.post('/print-jobs/:jobId/retry', retryPrintJob);
 router.get('/proxy-pdf', proxyPdf);
 router.post('/clear', clearAllData);
 router.get('/fetch-real-orders', fetchRealOrders);
+router.post('/print-label', printLabelFromUrl);
 
 export default router;
