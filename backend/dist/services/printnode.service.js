@@ -3,39 +3,29 @@ import { config } from '../config/index.js';
 export async function printLabel(pdfBuffer, title) {
     try {
         const auth = Buffer.from(`${config.printnode.apiKey}:`).toString('base64');
+        // PrintNode API-compliant payload
+        // NOTE: Margins and scaling MUST be done in the PDF itself
+        // PrintNode only supports: paper, fit_to_page, rotate, copies, bin, duplex, dpi
         const payload = {
             printerId: Number(config.printnode.printerId),
             title,
             contentType: 'pdf_base64',
             content: pdfBuffer.toString('base64'),
             source: 'LabelAutomation',
-            // A6 paper settings: 105x148mm with custom margins and 90% scale
             options: {
-                // Paper size - A6 (105mm x 148mm)
-                paper: 'A6',
-                // Margins in points (top, right, bottom, left)
-                // Top: 5mm = 14.17pt, Right: 10mm = 28.35pt, Bottom: 0mm = 0pt, Left: 10mm = 28.35pt
-                margins: {
-                    top: 14,
-                    right: 28,
-                    bottom: 0,
-                    left: 28,
-                },
-                // Scaling and fitting options
-                fit_to_page: false,
-                rotate: 0,
-                copies: 1,
-                // Printer-specific options (varies by driver)
-                // These are passed directly to the printer driver
-                bin: 'AutoSelect',
-                duplex: 'one-sided', // Must be: "one-sided", "long-edge", or "short-edge"
-                // For scaling, different printers support different options
-                // Try multiple approaches for compatibility
-                'print-scaling': 'none', // For some CUPS drivers
-                scaling: 90, // For Windows drivers
-                scale: 90, // Alternative for some drivers
+                paper: 'A6', // A6 (105mm x 148mm)
+                fit_to_page: false, // Prevent driver auto-scaling
+                rotate: 0, // No rotation
+                copies: 1, // Single copy
+                duplex: 'one-sided', // Single-sided printing
+                // bin: 'Auto',        // Uncomment if needed - must match printer capabilities
             },
         };
+        console.log('📤 Sending print job to PrintNode:');
+        console.log('   Printer ID:', payload.printerId);
+        console.log('   Title:', payload.title);
+        console.log('   Options:', JSON.stringify(payload.options, null, 2));
+        console.log('   PDF size:', pdfBuffer.length, 'bytes');
         const response = await axios.post('https://api.printnode.com/printjobs', payload, {
             headers: {
                 Authorization: `Basic ${auth}`,
@@ -43,13 +33,53 @@ export async function printLabel(pdfBuffer, title) {
             },
             timeout: 30000,
         });
+        console.log('✅ PrintNode job created:', response.data.id);
+        console.log('   Job state:', response.data.state);
         return {
             jobId: response.data.id,
             success: true,
         };
     }
     catch (error) {
+        console.error('❌ PrintNode API error:');
+        console.error('   Message:', error.response?.data?.message || error.message);
+        console.error('   Status:', error.response?.status);
+        console.error('   Data:', JSON.stringify(error.response?.data, null, 2));
         throw new Error(`PrintNode error: ${error.response?.data?.message || error.message}`);
+    }
+}
+export async function getPrinterCapabilities() {
+    try {
+        const auth = Buffer.from(`${config.printnode.apiKey}:`).toString('base64');
+        const response = await axios.get(`https://api.printnode.com/printers/${config.printnode.printerId}`, {
+            headers: {
+                Authorization: `Basic ${auth}`,
+            },
+            timeout: 10000,
+        });
+        const printers = Array.isArray(response.data) ? response.data : [response.data];
+        const printer = printers[0];
+        if (!printer) {
+            throw new Error('Printer not found');
+        }
+        console.log('🖨️  Printer Capabilities:');
+        console.log('   Name:', printer.name);
+        console.log('   State:', printer.state);
+        console.log('   Available papers:', Object.keys(printer.capabilities?.papers || {}));
+        // Check if A6 is supported
+        const papers = printer.capabilities?.papers || {};
+        if (papers['A6']) {
+            console.log('   ✅ A6 supported:', papers['A6'], '(tenths of mm)');
+        }
+        else {
+            console.log('   ⚠️  A6 not found in capabilities');
+            console.log('   Available paper sizes:', JSON.stringify(papers, null, 2));
+        }
+        return printer;
+    }
+    catch (error) {
+        console.error('❌ Failed to get printer capabilities:', error.message);
+        throw error;
     }
 }
 export async function getPrinterStatus() {

@@ -5,7 +5,10 @@ import {
   startAutoGenerate, 
   stopAutoGenerate 
 } from '../controllers/mock.controller.js';
-import { getRecentShopifyOrders } from '../controllers/test.controller.js';
+import { 
+  getRecentShopifyOrders,
+  checkPrinterCapabilities 
+} from '../controllers/test.controller.js';
 import { 
   testDPDLabel, 
   testOMNIVALabel, 
@@ -17,6 +20,9 @@ const router = Router();
 // Shopify data
 router.get('/shopify-orders', getRecentShopifyOrders);
 router.post('/seed', seedTestData);
+
+// PrintNode capabilities
+router.get('/printer-capabilities', checkPrinterCapabilities);
 
 // Mock fulfillments (fake data)
 router.post('/mock-fulfillment', mockFulfillment);

@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { store } from '../store.js';
 import { broadcastUpdate } from '../websocket.js';
 import { listRecentOrders } from '../services/shopify.service.js';
+import { getPrinterCapabilities } from '../services/printnode.service.js';
 export async function getRecentShopifyOrders(req, res) {
     try {
         const limit = parseInt(req.query.limit) || 10;
@@ -133,6 +134,35 @@ export async function seedTestData(req, res) {
         res.status(500).json({
             success: false,
             error: 'Failed to seed test data',
+        });
+    }
+}
+export async function checkPrinterCapabilities(req, res) {
+    try {
+        const printer = await getPrinterCapabilities();
+        res.json({
+            success: true,
+            printer: {
+                id: printer.id,
+                name: printer.name,
+                state: printer.state,
+                computer: printer.computer,
+                capabilities: {
+                    papers: printer.capabilities?.papers || {},
+                    bins: printer.capabilities?.bins || [],
+                    dpis: printer.capabilities?.dpis || [],
+                    printrate: printer.capabilities?.printrate || {},
+                    supports_custom_paper_size: printer.capabilities?.supports_custom_paper_size || false,
+                }
+            }
+        });
+    }
+    catch (error) {
+        console.error('Failed to get printer capabilities:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get printer capabilities',
+            message: error.message
         });
     }
 }
