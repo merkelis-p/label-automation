@@ -3,6 +3,7 @@ import { store } from '../store.js';
 import { broadcastUpdate } from '../websocket.js';
 import { printLabel } from '../services/printnode.service.js';
 import { config } from '../config/index.js';
+import { toA6WithMarginsAndScale } from '../utils/pdf-utils.js';
 /**
  * MakeCommerce Test Controller
  *
@@ -60,9 +61,11 @@ async function createTestOrder(orderId, carrier, shipmentId, destinationId, labe
                 responseType: 'arraybuffer',
                 timeout: 10000,
             });
-            const pdfBuffer = Buffer.from(pdfResponse.data);
+            const originalPdfBuffer = Buffer.from(pdfResponse.data);
+            // Pre-process: Convert to A6 with margins and 90% scale
+            const processedPdfBuffer = await toA6WithMarginsAndScale(originalPdfBuffer);
             // Send to PrintNode
-            const printResult = await printLabel(pdfBuffer, `Label ${shipmentId}`);
+            const printResult = await printLabel(processedPdfBuffer, `Label ${shipmentId}`);
             // Create print job record
             const printJob = {
                 id: `job_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,

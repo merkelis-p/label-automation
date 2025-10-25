@@ -5,6 +5,7 @@ import { broadcastUpdate } from '../websocket.js';
 import { FulfilledOrder, PrintJob } from '../types/index.js';
 import { printLabel } from '../services/printnode.service.js';
 import { config } from '../config/index.js';
+import { toA6WithMarginsAndScale } from '../utils/pdf-utils.js';
 
 /**
  * MakeCommerce Test Controller
@@ -76,10 +77,13 @@ async function createTestOrder(
         responseType: 'arraybuffer',
         timeout: 10000,
       });
-      const pdfBuffer = Buffer.from(pdfResponse.data);
+      const originalPdfBuffer = Buffer.from(pdfResponse.data);
+
+      // Pre-process: Convert to A6 with margins and 90% scale
+      const processedPdfBuffer = await toA6WithMarginsAndScale(originalPdfBuffer);
 
       // Send to PrintNode
-      const printResult = await printLabel(pdfBuffer, `Label ${shipmentId}`);
+      const printResult = await printLabel(processedPdfBuffer, `Label ${shipmentId}`);
       
       // Create print job record
       const printJob: PrintJob = {
