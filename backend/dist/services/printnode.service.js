@@ -9,6 +9,32 @@ export async function printLabel(pdfBuffer, title) {
             contentType: 'pdf_base64',
             content: pdfBuffer.toString('base64'),
             source: 'LabelAutomation',
+            // A6 paper settings: 105x148mm with custom margins and 90% scale
+            options: {
+                // Paper size - A6 (105mm x 148mm)
+                paper: 'A6',
+                // Margins in points (top, right, bottom, left)
+                // Top: 5mm = 14.17pt, Right: 10mm = 28.35pt, Bottom: 0mm = 0pt, Left: 10mm = 28.35pt
+                margins: {
+                    top: 14,
+                    right: 28,
+                    bottom: 0,
+                    left: 28,
+                },
+                // Scaling and fitting options
+                fit_to_page: false,
+                rotate: 0,
+                copies: 1,
+                // Printer-specific options (varies by driver)
+                // These are passed directly to the printer driver
+                bin: 'AutoSelect',
+                duplex: 'None',
+                // For scaling, different printers support different options
+                // Try multiple approaches for compatibility
+                'print-scaling': 'none', // For some CUPS drivers
+                scaling: 90, // For Windows drivers
+                scale: 90, // Alternative for some drivers
+            },
         };
         const response = await axios.post('https://api.printnode.com/printjobs', payload, {
             headers: {
