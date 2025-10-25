@@ -27,7 +27,7 @@ Margins are specified in **points** (1mm = 2.83465 points, rounded for simplicit
 - **Fit to page**: Disabled (`fit_to_page: false`)
 - **Rotation**: None (`rotate: 0`)
 - **Copies**: 1 (`copies: 1`)
-- **Duplex**: None (single-sided)
+- **Duplex**: One-sided (`duplex: 'one-sided'`)
 - **Paper bin**: Auto-select
 
 ## Testing the Settings

@@ -37,7 +37,7 @@ export async function printLabel(
         // Printer-specific options (varies by driver)
         // These are passed directly to the printer driver
         bin: 'AutoSelect',
-        duplex: 'None',
+        duplex: 'one-sided', // Must be: "one-sided", "long-edge", or "short-edge"
         // For scaling, different printers support different options
         // Try multiple approaches for compatibility
         'print-scaling': 'none', // For some CUPS drivers
