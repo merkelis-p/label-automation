@@ -33,10 +33,14 @@ export async function printLabel(pdfBuffer, title) {
             },
             timeout: 30000,
         });
-        console.log('✅ PrintNode job created:', response.data.id);
-        console.log('   Job state:', response.data.state);
+        console.log('✅ PrintNode response received:');
+        console.log('   Full response:', JSON.stringify(response.data, null, 2));
+        console.log('   Job ID:', response.data?.id || response.data);
+        console.log('   Job state:', response.data?.state);
+        // PrintNode returns just the job ID as a number when successful
+        const jobId = typeof response.data === 'number' ? response.data : response.data?.id;
         return {
-            jobId: response.data.id,
+            jobId: jobId || 0,
             success: true,
         };
     }
